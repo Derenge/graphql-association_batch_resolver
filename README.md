@@ -1,15 +1,13 @@
-# GraphQL::BatchResolver
+# GraphQL::AssociationBatchResolver
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/graphql/batch_resolver`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+A resolver for [graphql-ruby](https://github.com/rmosolgo/graphql-ruby) that batch loads active record associations.
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'graphql-batch_resolver'
+gem 'association_batch_resolver'
 ```
 
 And then execute:
@@ -18,11 +16,29 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install graphql-batch_resolver
+    $ gem install graphql-association_batch_resolver
 
 ## Usage
 
-TODO: Write usage instructions here
+```ruby
+# Model definition
+class Player < ActiveRecord::Base
+  belongs_to :team
+  
+end
+
+# Type definition
+class PlayerType < GraphQL::Schema::Object
+  field :team, resolver: GraphQL::AssociationBatchResolver.for(Player, :team) 
+end
+
+```
+
+**GraphQL::AssociationBatchResolver#for**
+ * Arguments
+   * model - ActiveRecord::Base descendant
+   * association - Any ActiveRecord association name on `model`
+
 
 ## Development
 
@@ -32,4 +48,4 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/graphql-batch_resolver.
+Bug reports and pull requests are welcome on GitHub at https://github.com/derenge/graphql-association_batch_resolver.

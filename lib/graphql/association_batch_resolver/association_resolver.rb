@@ -1,8 +1,9 @@
+# frozen_string_literal: true
+
 require 'forwardable'
-require 'cacheql'
 
 module GraphQL
-  module BatchResolver
+  module AssociationBatchResolver
     class AssociationResolver < GraphQL::Schema::Resolver
       class << self
         attr_accessor :model, :association
@@ -19,10 +20,6 @@ module GraphQL
         end
 
         def validate_association!
-          is_symbol = association.is_a?(Symbol)
-
-          raise InvalidAssociation, 'Association must be a Symbol object' unless is_symbol
-
           is_association = !model.reflect_on_association(association).nil?
 
           raise InvalidAssociation, "Association :#{association} does not exist on #{model}" unless is_association
@@ -31,12 +28,12 @@ module GraphQL
 
       extend Forwardable
 
-      def_delegators :'self.class', :model, :association, :loader
+      def_delegators :'self.class', :model, :association
       attr_accessor :loader
 
-      def initialize(*)
-        super
-        @loader = CacheQL::AssociationLoader.for(model, association)
+      def initialize(*args, loader_class: GraphQL::AssociationBatchResolver.configuration.loader, **keywargs, &block)
+        super(*args, **keywargs, &block)
+        @loader = loader_class.for(model, association)
       end
 
       def resolve(*)

@@ -1,7 +1,10 @@
-require 'graphql/batch_resolver/association_resolver'
+# frozen_string_literal: true
+
+require 'graphql/association_batch_resolver/association_resolver'
+require 'graphql/association_batch_resolver/association_loader'
 
 module GraphQL
-  module BatchResolver
+  module AssociationBatchResolver
     class ResolverBuilder
       attr_accessor :model, :association
 
