@@ -19,8 +19,8 @@ module GraphQL
       end
     end
 
-    def self.for(model, association)
-      ResolverBuilder.new(model, association).resolver
+    def self.for(model, association, opts = {})
+      ResolverBuilder.new(model, association, opts).resolver
     end
 
     def self.configure

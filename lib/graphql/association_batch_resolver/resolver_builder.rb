@@ -6,11 +6,12 @@ require 'graphql/association_batch_resolver/association_loader'
 module GraphQL
   module AssociationBatchResolver
     class ResolverBuilder
-      attr_accessor :model, :association
+      attr_accessor :model, :association, :options
 
-      def initialize(model, association)
+      def initialize(model, association, opts)
         @model = model
         @association = association
+        @options = opts
       end
 
       def resolver_class_name
@@ -31,6 +32,7 @@ module GraphQL
         resolver = Class.new(AssociationResolver)
         resolver.model = model
         resolver.association = association
+        resolver.options = options
 
         model.const_set(resolver_class_name, resolver)
 

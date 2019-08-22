@@ -6,7 +6,7 @@ module GraphQL
   module AssociationBatchResolver
     class AssociationResolver < GraphQL::Schema::Resolver
       class << self
-        attr_accessor :model, :association
+        attr_accessor :model, :association, :options
 
         def validate!
           validate_model!
@@ -28,12 +28,16 @@ module GraphQL
 
       extend Forwardable
 
-      def_delegators :'self.class', :model, :association
+      def_delegators :'self.class', :model, :association, :options
       attr_accessor :loader
 
       def initialize(*args, loader_class: GraphQL::AssociationBatchResolver.configuration.loader, **keywargs, &block)
         super(*args, **keywargs, &block)
-        @loader = loader_class.for(model, association)
+        initialization_arguments = [model, association]
+        initialization_arguments << options if loader_class.method(:new).arity == 3
+
+        @loader = loader_class.for(*initialization_arguments)
+        @loader.context = context if @loader.respond_to?(:context=)
       end
 
       def resolve(*)

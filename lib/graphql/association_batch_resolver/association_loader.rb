@@ -6,17 +6,18 @@ module GraphQL
   module AssociationBatchResolver
     class AssociationLoader < GraphQL::Batch::Loader
       attr_reader :model, :model_primary_key, :association_name, :is_collection, :association_model,
-                  :association_primary_key
-      attr_accessor :scope, :model_primary_key_to_association_primary_keys
+                  :association_primary_key, :options
+      attr_accessor :scope, :context
 
-      def self.validate(model, association_name)
-        new(model, association_name)
+      def self.validate(model, association_name, options = {})
+        new(model, association_name, options)
         nil
       end
 
-      def initialize(model, association_name)
+      def initialize(model, association_name, options = {})
         @model = model
         @association_name = association_name
+        @options = options
         validate
         @model_primary_key = model.primary_key
         association = @model.reflect_on_association(association_name)
@@ -52,16 +53,19 @@ module GraphQL
       def preload_association(records)
         select_model_primary_keys = ColumnAggregator.aggregate([model.arel_table[model_primary_key]])
 
-        id_map = model.where(model_primary_key => records)
-                      .joins(association_name)
-                      .select(association_model.arel_table[Arel.star])
-                      .select(select_model_primary_keys.as('model_primary_keys'))
-                      .group(association_model.arel_table[association_primary_key])
+        association_records = model.where(model_primary_key => records)
+                                   .joins(association_name)
+                                   .select(association_model.arel_table[Arel.star])
+                                   .select(select_model_primary_keys.as('model_primary_keys'))
+                                   .group(association_model.arel_table[association_primary_key])
+
+        association_records = options[:scope].call(association_records, context) if options[:scope].respond_to?(:call)
 
         # .merge(Pundit.policy_scope!(context[:user], association.klass))
 
-        self.scope = association_model.find_by_sql(id_map.to_sql).to_a
+        self.scope = association_model.find_by_sql(association_records.to_sql).to_a
       end
+
       # rubocop:enable Metrics/AbcSize
 
       def read_association(model_record)

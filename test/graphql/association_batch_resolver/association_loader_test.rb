@@ -9,6 +9,18 @@ module GraphQL
         GraphQL::AssociationBatchResolver::AssociationLoader
       end
 
+      def query_count_and_batch_result(expected_query_count: 1)
+        result = nil
+        query_count = QueryCounterHelper.count do
+          result = GraphQL::Batch.batch do
+            yield
+          end
+        end
+
+        assert_equal expected_query_count, query_count
+        result
+      end
+
       def setup_belongs_to
         players = [Player.create, Player.create, Player.create]
         teams = players.map { |p| Team.create(players: [p]) }
@@ -20,16 +32,13 @@ module GraphQL
 
       def test_batches_belongs_to_associations
         players, teams = setup_belongs_to
-        query_count = QueryCounterHelper.count do
-          loaded_teams = GraphQL::Batch.batch do
-            loader = subject.for(Player, :team)
+        loaded = query_count_and_batch_result do
+          loader = subject.for(Player, :team)
 
-            Promise.all(players.map { |player| loader.load(player) }).sync
-          end
-          assert_equal teams, loaded_teams
+          Promise.all(players.map { |player| loader.load(player) }).sync
         end
 
-        assert_equal 1, query_count
+        assert_equal teams, loaded
       end
 
       def setup_has_one
@@ -43,16 +52,13 @@ module GraphQL
 
       def test_batches_has_one_associations
         players, ranks = setup_has_one
-        query_count = QueryCounterHelper.count do
-          loaded_ranks = GraphQL::Batch.batch do
-            loader = subject.for(Player, :rank)
+        loaded = query_count_and_batch_result do
+          loader = subject.for(Player, :rank)
 
-            Promise.all(players.map { |player| loader.load(player) }).sync
-          end
-          assert_equal ranks, loaded_ranks
+          Promise.all(players.map { |player| loader.load(player) }).sync
         end
 
-        assert_equal 1, query_count
+        assert_equal ranks, loaded
       end
 
       def setup_has_many
@@ -71,16 +77,13 @@ module GraphQL
 
       def test_batches_has_many_associations
         players, teams = setup_has_many
-        query_count = QueryCounterHelper.count do
-          loaded_players = GraphQL::Batch.batch do
-            loader = subject.for(Team, :players)
+        loaded = query_count_and_batch_result do
+          loader = subject.for(Team, :players)
 
-            Promise.all(teams.map { |team| loader.load(team) }).sync
-          end
-          assert_equal players, loaded_players
+          Promise.all(teams.map { |team| loader.load(team) }).sync
         end
 
-        assert_equal 1, query_count
+        assert_equal players, loaded
       end
 
       def setup_has_many_through
@@ -101,16 +104,13 @@ module GraphQL
 
       def test_batches_has_many_through_associations
         teams, ranks = setup_has_many_through
-        query_count = QueryCounterHelper.count do
-          loaded_ranks = GraphQL::Batch.batch do
-            loader = subject.for(Team, :ranks)
+        loaded = query_count_and_batch_result do
+          loader = subject.for(Team, :ranks)
 
-            Promise.all(teams.map { |team| loader.load(team) }).sync
-          end
-          assert_equal ranks, loaded_ranks
+          Promise.all(teams.map { |team| loader.load(team) }).sync
         end
 
-        assert_equal 1, query_count
+        assert_equal ranks, loaded
       end
 
       def setup_habtm
@@ -125,16 +125,29 @@ module GraphQL
 
       def test_batches_habtm_associations
         players, games = setup_habtm
-        query_count = QueryCounterHelper.count do
-          loaded_games = GraphQL::Batch.batch do
-            loader = subject.for(Player, :games)
+        loaded = query_count_and_batch_result do
+          loader = subject.for(Player, :games)
 
-            Promise.all(players.map { |player| loader.load(player) }).sync
-          end
-          assert_equal games, loaded_games
+          Promise.all(players.map { |player| loader.load(player) }).sync
         end
 
-        assert_equal 1, query_count
+        assert_equal games, loaded
+      end
+
+      def even_ids_only
+        proc { |scope, _context| scope.where('teams.id % 2 = ?', 0) }
+      end
+
+      def test_it_supports_scope_option
+        players, teams = setup_belongs_to
+        expected_teams = teams.map { |t| t.id.even? ? t : nil }
+        loaded = query_count_and_batch_result do
+          loader = subject.for(Player, :team, scope: even_ids_only)
+
+          Promise.all(players.map { |player| loader.load(player) }).sync
+        end
+
+        assert_equal expected_teams, loaded
       end
     end
   end
