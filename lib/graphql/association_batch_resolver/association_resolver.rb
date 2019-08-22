@@ -34,7 +34,7 @@ module GraphQL
       def initialize(*args, loader_class: GraphQL::AssociationBatchResolver.configuration.loader, **keywargs, &block)
         super(*args, **keywargs, &block)
         initialization_arguments = [model, association]
-        initialization_arguments << options if loader_class.method(:new).arity == 3
+        initialization_arguments << options if options
 
         @loader = loader_class.for(*initialization_arguments)
         @loader.context = context if @loader.respond_to?(:context=)

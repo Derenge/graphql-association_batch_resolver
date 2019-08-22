@@ -15,6 +15,27 @@ module GraphQL
           assert instance.association == :team
         end
       end
+
+      def test_it_passes_on_options
+        GraphQL::Batch.batch do
+          opts = {foo: :bar}
+          AssociationResolver.model = Player
+          AssociationResolver.association = :team
+          AssociationResolver.options = opts
+          resolver = AssociationResolver.new(object: nil, context: nil)
+          assert_equal opts, resolver.loader.options
+        end
+      end
+
+      def test_it_passes_on_context
+        GraphQL::Batch.batch do
+          context = {foo: :bar}
+          AssociationResolver.model = Player
+          AssociationResolver.association = :team
+          resolver = AssociationResolver.new(object: nil, context: context)
+          assert_equal context, resolver.loader.context
+        end
+      end
     end
   end
 end
