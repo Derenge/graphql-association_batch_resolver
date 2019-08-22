@@ -7,8 +7,8 @@ module GraphQL
         Arel::Nodes::NamedFunction.new('GROUP_CONCAT', expression)
       end
 
-      def self.deserialize(column)
-        column.split(',')
+      def self.deserialize(column, type)
+        column.split(',').map(&type.method(:deserialize))
       end
     end
   end

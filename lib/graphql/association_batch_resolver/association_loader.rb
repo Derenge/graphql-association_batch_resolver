@@ -75,8 +75,9 @@ module GraphQL
       def read_association(model_record)
         key = model_record.send(model_primary_key)
 
+        type = model.type_for_attribute(model_primary_key)
         association_scope = scope.select do |association_record|
-          ColumnAggregator.deserialize(association_record.model_primary_keys).include?(key.to_s)
+          ColumnAggregator.deserialize(association_record.model_primary_keys, type).include?(key)
         end
 
         is_collection ? association_scope : association_scope.first

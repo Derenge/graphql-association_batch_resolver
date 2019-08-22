@@ -10,8 +10,8 @@ module GraphQL
         adapter.aggregate(expression)
       end
 
-      def self.deserialize(column)
-        adapter.deserialize(column)
+      def self.deserialize(column, type)
+        adapter.deserialize(column, type)
       end
 
       def self.adapter
