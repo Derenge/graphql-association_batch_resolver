@@ -149,6 +149,18 @@ module GraphQL
 
         assert_equal expected_teams, loaded
       end
+
+      def test_it_handles_empty_sql
+        players, = setup_belongs_to
+        expected_teams = [nil, nil, nil]
+        loaded = query_count_and_batch_result(expected_query_count: 0) do
+          loader = subject.for(Player, :team, scope: proc {|scope, _context| scope.none})
+
+          Promise.all(players.map { |player| loader.load(player) }).sync
+        end
+
+        assert_equal expected_teams, loaded
+      end
     end
   end
 end

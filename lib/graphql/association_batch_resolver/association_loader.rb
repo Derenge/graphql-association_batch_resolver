@@ -49,23 +49,27 @@ module GraphQL
         raise ArgumentError, "No association #{association_name} on #{model}" unless association_exists
       end
 
-      # rubocop:disable Metrics/AbcSize
       def preload_association(records)
-        select_model_primary_keys = ColumnAggregator.aggregate([model.arel_table[model_primary_key]])
-
-        association_records = model.where(model_primary_key => records)
-                                   .joins(association_name)
-                                   .select(association_model.arel_table[Arel.star])
-                                   .select(select_model_primary_keys.as('model_primary_keys'))
-                                   .group(association_model.arel_table[association_primary_key])
-
+        association_records = associations_for(records)
         association_records = options[:scope].call(association_records, context) if options[:scope].respond_to?(:call)
+        find_by_sql = association_records.to_sql
 
-        # .merge(Pundit.policy_scope!(context[:user], association.klass))
-
-        self.scope = association_model.find_by_sql(association_records.to_sql).to_a
+        self.scope = if find_by_sql.present?
+                       association_model.find_by_sql(find_by_sql).to_a
+                     else
+                       []
+                     end
       end
 
+      # rubocop:disable Metrics/AbcSize
+      def associations_for(records)
+        select_model_primary_keys = ColumnAggregator.aggregate([model.arel_table[model_primary_key]])
+        self.scope = model.where(model_primary_key => records)
+                          .joins(association_name)
+                          .select(association_model.arel_table[Arel.star])
+                          .select(select_model_primary_keys.as('model_primary_keys'))
+                          .group(association_model.arel_table[association_primary_key])
+      end
       # rubocop:enable Metrics/AbcSize
 
       def read_association(model_record)
