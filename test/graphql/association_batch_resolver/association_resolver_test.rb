@@ -36,6 +36,18 @@ module GraphQL
           assert_equal context, resolver.loader.context
         end
       end
+
+      def test_it_passes_on_arguments
+        GraphQL::Batch.batch do
+          context = {foo: :bar}
+          AssociationResolver.model = Player
+          player = Player.new
+          AssociationResolver.association = :team
+          resolver = AssociationResolver.new(object: player, context: context)
+          resolver.resolve(where: :foo)
+          assert resolver.loader.args = {where: :foo}
+        end
+      end
     end
   end
 end

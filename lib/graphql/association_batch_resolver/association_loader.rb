@@ -7,7 +7,7 @@ module GraphQL
     class AssociationLoader < GraphQL::Batch::Loader
       attr_reader :model, :model_primary_key, :association_name, :is_collection, :association_model,
                   :association_primary_key, :options
-      attr_accessor :scope, :context
+      attr_accessor :scope, :context, :args
 
       def self.validate(model, association_name, options = {})
         new(model, association_name, options)
@@ -51,7 +51,7 @@ module GraphQL
 
       def preload_association(records)
         association_records = associations_for(records)
-        association_records = options[:scope].call(association_records, context) if options[:scope].respond_to?(:call)
+        association_records = options[:scope].call(association_records, context, *args) if options[:scope].respond_to?(:call)
         find_by_sql = association_records.to_sql
 
         self.scope = if find_by_sql.present?

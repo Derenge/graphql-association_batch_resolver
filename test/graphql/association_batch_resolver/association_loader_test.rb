@@ -134,15 +134,28 @@ module GraphQL
         assert_equal games, loaded
       end
 
-      def even_ids_only
-        proc { |scope, _context| scope.where('teams.id % 2 = ?', 0) }
+      def mod_ids
+        proc { |scope, _context, remainder: 0| scope.where('teams.id % 2 = ?', remainder) }
       end
 
       def test_it_supports_scope_option
         players, teams = setup_belongs_to
         expected_teams = teams.map { |t| t.id.even? ? t : nil }
         loaded = query_count_and_batch_result do
-          loader = subject.for(Player, :team, scope: even_ids_only)
+          loader = subject.for(Player, :team, scope: mod_ids)
+
+          Promise.all(players.map { |player| loader.load(player) }).sync
+        end
+
+        assert_equal expected_teams, loaded
+      end
+
+      def test_it_passes_arguments_to_scope
+        players, teams = setup_belongs_to
+        expected_teams = teams.map { |t| t.id.odd? ? t : nil }
+        loaded = query_count_and_batch_result do
+          loader = subject.for(Player, :team, scope: mod_ids)
+          loader.args = [remainder: 1]
 
           Promise.all(players.map { |player| loader.load(player) }).sync
         end

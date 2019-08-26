@@ -40,7 +40,8 @@ module GraphQL
         @loader.context = context if @loader.respond_to?(:context=)
       end
 
-      def resolve(*)
+      def resolve(*args)
+        loader.args = *args
         loader.load(object)
       end
     end
